@@ -2,6 +2,7 @@
 #include <SDL2/SDL_image.h>
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 struct Entity {
   SDL_Texture* texture;
@@ -16,10 +17,11 @@ int main(int argc, char* args[]) {
   SDL_Window* window = SDL_CreateWindow("Sniffy Butt Fart", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 512*2, 512*2, SDL_WINDOW_SHOWN);
   SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-  // SDL_Texture* grassTexture = IMG_LoadTexture(renderer, "./res/img/grass.png");
+  SDL_Texture* grassTexture = IMG_LoadTexture(renderer, "./res/img/grass.png");
   SDL_Texture* dirtTexture = IMG_LoadTexture(renderer, "./res/img/dirt.png");
   SDL_Texture* grassTileTexture = IMG_LoadTexture(renderer, "./res/img/grassTile.png");
   SDL_Texture* baseTexture = IMG_LoadTexture(renderer, "./res/img/base.png");
+  SDL_Texture* turretTexture = IMG_LoadTexture(renderer, "./res/img/turret-sheet.png");
 
   const int fps = 60;
   const int frameDelay = 1000 / fps;
@@ -30,6 +32,12 @@ int main(int argc, char* args[]) {
   std::vector<Entity> renderList = std::vector<Entity>();
 
   const int baseLocation = 7*64;
+
+  bool running = true;
+  SDL_Event event;
+
+  int mousex = 0, mousey = 0;
+  double angleFromCenterToMouse = 0;
 
   int map[16][16] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -62,8 +70,7 @@ int main(int argc, char* args[]) {
   }
   renderList.push_back({ baseTexture, new SDL_Rect({0, 0, 64, 64}), new SDL_Rect({baseLocation, baseLocation-16, 128, 128}) });
 
-  bool running = true;
-  SDL_Event event;
+  renderList.push_back({ turretTexture, new SDL_Rect({0, 0, 32, 32}), new SDL_Rect({8*64-32, 7*64-16, 64, 64}) });
 
   while (running) {
     // lastFrameStart = frameStart;
@@ -72,8 +79,16 @@ int main(int argc, char* args[]) {
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) running = false;
     }
+    
+    SDL_GetMouseState(&mousex, &mousey);
 
-
+    // Rotate turret to follow mouse
+    angleFromCenterToMouse = atan2(double(mousey-16*32), double(mousex-16*32)) - 3*M_PI/8;
+    if (angleFromCenterToMouse < 0) angleFromCenterToMouse = M_PI + M_PI + (angleFromCenterToMouse);
+    int normalizedAngle = floor(angleFromCenterToMouse * 8/(2*M_PI));
+    int a = normalizedAngle % 3, b = normalizedAngle / 3;
+    renderList[renderList.size()-1].src_rect->x = 32*a;
+    renderList[renderList.size()-1].src_rect->y = 32*b;
 
     SDL_RenderClear(renderer);
     for (size_t i = 0; i < renderList.size(); i++) {
